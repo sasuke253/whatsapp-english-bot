@@ -287,7 +287,12 @@ async function startBot() {
                 '--disable-dev-shm-usage',
                 '--disable-accelerated-2d-canvas',
                 '--no-first-run',
-                '--disable-gpu'
+                '--disable-gpu',
+                '--no-zygote',
+                '--enable-low-end-device-mode',
+                '--disable-site-isolation-trials',
+                '--disable-remote-fonts',
+                '--disable-extensions'
             ]
         }
     });
