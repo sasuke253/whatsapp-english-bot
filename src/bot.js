@@ -264,8 +264,6 @@ async function startBot() {
                 '--disable-dev-shm-usage',
                 '--disable-accelerated-2d-canvas',
                 '--no-first-run',
-                '--no-zygote',
-                '--single-process', // Extremely important for 512MB limit
                 '--disable-gpu'
             ]
         }
