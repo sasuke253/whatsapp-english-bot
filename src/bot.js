@@ -14,7 +14,7 @@ dotenv.config();
 const app = express();
 app.get('/', (req, res) => res.send('WhatsApp Bot is running!'));
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Servidor web escutando na porta ${port}`));
+app.listen(port, '0.0.0.0', () => console.log(`Servidor web escutando na porta ${port}`));
 
 let client;
 
