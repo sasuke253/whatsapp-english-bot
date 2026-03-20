@@ -280,6 +280,10 @@ async function startBot() {
             store: store,
             backupSyncIntervalMs: 300000
         }),
+        webVersionCache: {
+            type: 'remote',
+            remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
+        },
         puppeteer: {
             args: [
                 '--no-sandbox',
@@ -292,7 +296,8 @@ async function startBot() {
                 '--enable-low-end-device-mode',
                 '--disable-site-isolation-trials',
                 '--disable-remote-fonts',
-                '--disable-extensions'
+                '--disable-extensions',
+                '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
             ]
         }
     });
