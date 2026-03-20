@@ -332,23 +332,9 @@ async function startBot() {
         session.conversationHistory = [];
         session.scenario = null;
 
-        const listMsg = new List(
-            `Bem-vindo ao teste de nivelamento!\n\n${questions[0].question}\n\n${questions[0].options.join("\n")}`,
-            "Responder",
-            [{
-                title: "Opções de Resposta",
-                rows: [
-                    { id: 'a', title: "A" },
-                    { id: 'b', title: "B" },
-                    { id: 'c', title: "C" },
-                    { id: 'd', title: "D" }
-                ]
-            }],
-            "🇺🇸 English Level Test",
-            "Escolha a alternativa correta na lista em anexo"
-        );
+        const textMsg = `🇺🇸 *English Level Test*\n\nBem-vindo ao teste de nivelamento!\n\n${questions[0].question}\n\n${questions[0].options.join("\n")}\n\n👉 *Digite a letra (A, B, C ou D) correspondente à sua resposta.*`;
 
-        await client.sendMessage(message.from, listMsg);
+        await client.sendMessage(message.from, textMsg);
     }
     else if (session.state === "TEST") {
         const currentQ = questions[session.currentQuestion];
@@ -372,22 +358,8 @@ async function startBot() {
 
         if (session.currentQuestion < questions.length) {
             const nextQ = questions[session.currentQuestion];
-            const nextListMsg = new List(
-                `Pergunta ${session.currentQuestion + 1} de 10:\n\n${nextQ.question}\n\n${nextQ.options.join("\n")}`,
-                "Responder",
-                [{
-                    title: "Opções de Resposta",
-                    rows: [
-                        { id: 'a', title: "A" },
-                        { id: 'b', title: "B" },
-                        { id: 'c', title: "C" },
-                        { id: 'd', title: "D" }
-                    ]
-                }],
-                "🇺🇸 English Level Test",
-                "Escolha a alternativa correta na lista em anexo"
-            );
-            await client.sendMessage(message.from, nextListMsg);
+            const nextTextMsg = `🇺🇸 *English Level Test* (Pergunta ${session.currentQuestion + 1} de 10):\n\n${nextQ.question}\n\n${nextQ.options.join("\n")}\n\n👉 *Digite a sua resposta (A, B, C ou D).*`;
+            await client.sendMessage(message.from, nextTextMsg);
         } else {
             session.level = getLevel(session.score);
             const levelInfo = levelDescriptions[session.level];
