@@ -11,8 +11,31 @@ import { initDB, loadSessionsFromDB, saveSessionToDB, recordError, getTopError, 
 
 dotenv.config();
 
+let currentQR = "";
+let clientReady = false;
+
 const app = express();
-app.get('/', (req, res) => res.send('WhatsApp Bot is running!'));
+app.get('/', async (req, res) => {
+    if (clientReady) {
+        return res.send('<h1>WhatsApp Bot is Online! 🚀</h1>');
+    }
+    if (currentQR) {
+        try {
+            const qrImage = await QRCode.toDataURL(currentQR);
+            return res.send(`
+                <div style="display:flex; flex-direction:column; align-items:center; margin-top:50px; font-family:sans-serif;">
+                    <h2>Escaneie o QR Code abaixo com seu WhatsApp</h2>
+                    <img src="${qrImage}" style="width:350px; height:350px; border:2px solid black; border-radius:10px;" />
+                    <p>Depois de escanear, esta página não será mais necessária.</p>
+                </div>
+            `);
+        } catch (err) {
+            return res.send('Erro ao renderizar QR Code.');
+        }
+    }
+    res.send('<h3>Aguardando geração do QR Code... Atualize a página em 10 segundos.</h3>');
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, '0.0.0.0', () => console.log(`Servidor web escutando na porta ${port}`));
 
@@ -270,11 +293,13 @@ async function startBot() {
     });
 
     client.on("qr", async (qr) => {
-        console.log("Escaneie o QR Code abaixo diretamente na tela preta (Logs):");
-        qrcodeTerminal.generate(qr, { small: true });
+        currentQR = qr;
+        console.log("⚠️ QR Code gerado! Abra o LINK DO SEU SITE NA RENDER (ali no canto superior esquerdo) no navegador para escanear de forma nítida!");
     });
 
     client.on("ready", () => {
+        currentQR = "";
+        clientReady = true;
         console.log("Bot pronto! Conectado ao WhatsApp na nuvem.");
     });
 
