@@ -2,12 +2,19 @@ import pkg from 'whatsapp-web.js';
 const { Client, RemoteAuth, List } = pkg;
 import { MongoStore } from 'wwebjs-mongo';
 import QRCode from 'qrcode';
+import qrcodeTerminal from 'qrcode-terminal';
+import express from 'express';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { initDB, loadSessionsFromDB, saveSessionToDB, recordError, getTopError, mongoose } from './db.js';
 
 dotenv.config();
+
+const app = express();
+app.get('/', (req, res) => res.send('WhatsApp Bot is running!'));
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`Servidor web escutando na porta ${port}`));
 
 let client;
 
@@ -265,13 +272,8 @@ async function startBot() {
     });
 
     client.on("qr", async (qr) => {
-        console.log("Gerando QR Code...");
-        await QRCode.toFile("qr-code.png", qr, {
-            type: "png",
-            width: 400,
-            margin: 2
-        });
-        console.log("QR Code gerado! Abra o arquivo qr-code.png para escanear.");
+        console.log("Escaneie o QR Code abaixo diretamente na tela preta (Logs):");
+        qrcodeTerminal.generate(qr, { small: true });
     });
 
     client.on("ready", () => {
