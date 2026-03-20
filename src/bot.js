@@ -182,56 +182,41 @@ function getLevelFullName(level) {
     return names[level];
 }
 
-async function checkGrammar(text) {
+async function getCorrection(text, level) {
+    const prompt = `Você é um professor de inglês experiente analisando uma mensagem de um aluno (Nível: ${level}) no WhatsApp.
+Mensagem do aluno: "${text}"
+
+Se a mensagem estiver perfeitamente correta em inglês e fizer sentido no contexto de uma conversa natural, responda APENAS com a palavra: PERFECT.
+Se houver algum erro gramatical, erro de digitação, vocabulário estranho, ou falta de contexto, forneça uma explicação amigável e detalhada em PORTUGUÊS sobre o erro e sugira a forma correta.
+Exemplo de formato: "A frase '...' parece fora de contexto porque... O ideal seria dizer '...'."
+
+No final da sua resposta, pule uma linha e escreva CATEGORIA: [Nome da categoria do erro em inglês, ex: Prepositions, Verb Tense, Vocabulary, Context, Spelling].`;
+
     try {
-        const response = await fetch(`https://api.languagetool.org/v2/check`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: `text=${encodeURIComponent(text)}&language=en`
-        });
-        const data = await response.json();
-        return data.matches || [];
-    } catch (error) {
-        console.error("Erro ao verificar gramática:", error);
-        return [];
-    }
-}
-
-async function getCorrection(text) {
-    const matches = await checkGrammar(text);
-    
-    if (!matches || matches.length === 0) {
-        return {
-            corrected: text,
-            hasErrors: false,
-            corrections: []
-        };
-    }
-
-    const corrections = [];
-    const sortedMatches = [...matches].sort((a, b) => b.offset - a.offset);
-
-    for (const match of sortedMatches) {
-        let errorText = text.substring(match.offset, match.offset + match.length);
-        if (match.context && match.context.text) {
-            errorText = match.context.text.substring(match.context.offset, match.context.offset + match.context.length);
-        }
+        const result = await aiModel.generateContent(prompt);
+        const responseText = result.response.text().trim();
         
-        corrections.push({
-            error: errorText,
-            message: match.message,
-            replacements: match.replacements?.slice(0, 3).map(r => r.value) || [],
-            type: match.rule?.category?.name || "Grammar"
-        });
-    }
+        if (responseText === "PERFECT" || responseText.startsWith("PERFECT")) {
+            return { hasErrors: false, corrections: [] };
+        }
 
-    return {
-        corrected: text,
-        hasErrors: true,
-        corrections
-    };
+        const lines = responseText.split('\n');
+        let tip = responseText;
+        let type = "Grammar";
+
+        if (lines.length > 1 && lines[lines.length - 1].includes("CATEGORIA:")) {
+            type = lines.pop().replace("CATEGORIA:", "").trim();
+            tip = lines.join('\n').trim();
+        }
+
+        return {
+            hasErrors: true,
+            corrections: [{ error: text, message: tip, replacements: [], type }]
+        };
+    } catch (error) {
+        console.error("Erro no Gemini Dicas:", error);
+        return { hasErrors: false, corrections: [] };
+    }
 }
 
 async function translateToPortuguese(text) {
@@ -465,15 +450,13 @@ async function startBot() {
         session.lastEnglishMessage = text;
         session.lastPortugueseMessage = null;
 
-        const correction = await getCorrection(text);
+        const correction = await getCorrection(text, session.level);
         
         let correctionText = "";
         if (correction.hasErrors) {
-            correctionText = "\n\n📝 *Dica Gramatical:*\n";
-            for (const c of correction.corrections) {
-                correctionText += `• "${c.error}" → ${c.replacements.join(", ") || "(sem sugestão)"}\n`;
-                if (c.type) await recordError(contact, c.type);
-            }
+            const c = correction.corrections[0];
+            correctionText = `\n\n✅ *Dicas:*\n${c.message}`;
+            if (c.type) await recordError(contact, c.type);
         }
 
         const tempHistory = [...session.conversationHistory, { user: text, bot: "" }];
@@ -495,21 +478,18 @@ async function startBot() {
             return;
         }
 
-        const correction = await getCorrection(session.lastEnglishMessage);
+        const correction = await getCorrection(session.lastEnglishMessage, session.level);
 
         if (!correction.hasErrors) {
-            await message.reply("✅ Sua mensagem está correta! Não há erros.");
+            await message.reply("✅ Sua mensagem estava correta! Não encontrei erros nela.");
             return;
         }
 
         let response = "📝 *Correção da sua mensagem:*\n\n";
         response += `*Original:* ${session.lastEnglishMessage}\n\n`;
 
-        for (const c of correction.corrections) {
-            response += `❌ *"${c.error}"*\n`;
-            response += `✅ *Correção:* ${c.replacements.join(", ") || "(sem sugestão automática)"}\n`;
-            response += `💡 *Explicação:* ${c.message}\n\n`;
-        }
+        const c = correction.corrections[0];
+        response += `✅ *Dicas:*\n${c.message}`;
 
         await message.reply(response);
     }
